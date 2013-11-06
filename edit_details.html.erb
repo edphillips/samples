@@ -1,0 +1,94 @@
+<%= render :partial => "horiz_menu" %>
+
+<h1>Edit User Account</h1>
+
+<%= error_messages_for :user,
+	:header_message => "Error creating user account",
+	:header_sub_message=> nil %>
+
+<% form_for(:user, @user, {:url => {:action => "save_details" }, :html=>{:id=>'user_form'}} ) do |f| %>
+<%=f.hidden_field(:su_sys_no)%>
+<fieldset>
+    <legend>User Information</legend>
+    <table class="detail">
+        <tr>
+	    <th><label for="user_su_user_id">User ID</label></th>
+	    <td colspan="5"><%= @user.su_user_id%><%= f.hidden_field(:su_user_id) %></td>
+        </tr>
+				
+	<tr>
+	    <th><label for="user_su_first_name" class="required">First Name</label></th>
+	    <td><%= f.text_field(:su_first_name, :maxlength => 15, :class => "upper" ) %></td>
+	    <th><label for="user_su_middle_initial" >Middle Initial</label></th>
+	    <td><%= f.text_field(:su_middle_initial, :maxlength => 1, :class => "upper" ) %></td>
+	    <th><label for="user_su_last_name" class="required">Last Name</label></th>
+	    <td><%= f.text_field(:su_last_name, :maxlength => 30, :class => "upper" ) %></td>
+        </tr>
+				
+        <tr>
+	    <th><label for="user_su_email">E-Mail Address</label></th>
+	    <td colspan="5"><%= f.text_field(:su_email, :maxlength => 320, :size=>50, :class => "upper" ) %></td>
+        </tr>
+				
+	<tr>
+	    <th><label for="user_su_status_code">Status</label></th>
+	    <td colspan="5"><%=f.select :su_status_code, all_user_statuses()%>
+		<input type="hidden" id="orig_status" name="orig_status" value="<%=@user.orig_status_code%>"/>
+	    </td>
+        </tr>
+				
+	<tr>
+	    <th><label for="user_su_status_change_reason">Reason</label></th>
+	    <td colspan="5"><%= f.text_field(:su_status_change_reason, :maxlength => "256", :size => "50", :disabled => "disabled") %></td>
+        </tr>
+    </table>
+</fieldset>
+
+<%= render :partial => "edit_roles", :locals => { :f => f } %>
+
+<div style="clear:both;">
+  <%= f.submit "Save", :class => 'button' %>
+</div>
+<% end %>
+
+<script type="text/javascript">
+	$(document).ready( function() {
+		
+		//This code enables the Status Change Reason field when re-entry to the screen is made because of errors.
+		if( $("#user_su_status_code").val() != $("#orig_status").val()) {
+				$("#user_su_status_change_reason").removeAttr("disabled");
+				$("#user_su_status_change_reason").focus();
+		};
+				
+		$("#user_su_status_code").bind('change',function(){
+			if( $("#user_su_status_code").val() != $("#orig_status").val()) {
+				$("#user_su_status_change_reason").removeAttr("disabled");	
+				$("#user_su_status_change_reason").focus();
+				}
+			else {
+				$("#user_su_status_change_reason").attr("disabled", "disabled");
+				$("#user_su_status_change_reason").val("");
+			}
+		})
+		
+		$("form").submit(function(){
+			$(this).find(".upper").each(function(){
+					$(this).val(String($(this).val()).toUpperCase());
+			});
+			
+			$(this).find(".lower").each(function(){
+					$(this).val(String($(this).val()).toLowerCase());
+			});
+		});
+
+	});	
+</script>
+
+<style>
+    .upper {
+        text-transform: uppercase;
+    }
+    .lower {
+        text-transform: lowercase;
+    }
+</style>

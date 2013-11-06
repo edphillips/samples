@@ -1,0 +1,253 @@
+<%= javascript_include_tag "jquery-maskinput" %>
+
+<script type="text/javascript">
+	var $role = {};
+</script>
+
+<style type="text/css" media="screen">
+#div-1 {
+	position:relative;
+}
+
+#div-left {
+	float:left;
+	width:70%;
+}
+
+#div-right {
+	float:right;
+	top:0;
+	left:0;
+	width:30%;
+}
+
+#description {
+	min-height:384px;
+	height:auto !important;
+	height:384px; 
+}
+
+#role_text {
+	width:97%;
+	min-height:384px;
+	height:auto !important;
+	height:384px; 
+}
+</style>
+
+<div id="div-1">
+<div id="div-left">
+<fieldset>
+  <legend>Roles</legend>
+	<table>
+        <% roles = get_roles()
+		  roles.each do |role|
+		-%>
+        	
+	<tr>
+        <td valign="top">
+        	<% if( can_set_role(role.sr_name) )-%>
+			<input type="radio" id="user_roles_<%=role.sr_sys_no%>" name="roles[]" value="<%=role.sr_sys_no%>" <%=checked_role(@user.security_roles, role)%>  />&nbsp;
+		<% else -%>
+			<input type="radio" id="user_roles_<%=role.sr_sys_no%>" name="roles[]" value="<%=role.sr_sys_no%>" <%=checked_role(@user.security_roles, role)%> disabled="disabled"/>&nbsp;
+		<% end -%>
+	</td>
+        <td valign="top">
+		<%= image_tag  'red_x_16.png', :id => 'img_' + role.sr_name %>       	
+	</td>
+	<td valign="top">
+		<label for="user_roles_<%=role.sr_sys_no%>"><b><%=role.sr_name%></b></label>
+			<%= hidden_field_tag  'desc_' + role.sr_sys_no.to_s, role.sr_description %>
+			<script>
+				$role['<%=role.sr_name%>'] = $("#user_roles_<%=role.sr_sys_no%>");
+			</script>
+	</td>
+	</tr>
+	    <% end -%>
+	</table><br/>
+	<table class="detail" id="insp_flds">
+		<tr>
+			<th align="right"><%=label_tag 'user_district', 'District', :class=>"required", :id => "user_district_label"%></th>
+			<td><%=f.select :district, all_districts(), {:value => :district} %></td>
+			<td>&nbsp;</td>
+			<th align="right"><%=label_tag 'user_access_id', 'File No.', :class=>"required", :id => "user_access_id_label"%></th>
+			<% if  @user.access_id.blank? -%>
+			<td><%= text_field( :user, :access_id, {:maxlength => 4, :size => 4}) %><span id='access_note'>&nbsp;(also used as the Analyzer Access ID)</span></td>
+			<% else -%>
+			<td><%= text_field( :user, :access_id, {:maxlength => 4, :size => 4}) %>&nbsp;(also used as the Analyzer Access ID)</td>
+			<% end -%>
+		</tr>
+	</table>
+</fieldset>
+<%= hidden_field_tag("orig_access_id", @user.access_id.to_s.to_i) %>
+<%= hidden_field_tag("orig_user_role_sys_no", @user.user_role_sys_no) %>
+<%= hidden_field_tag("new_user_role_sys_no", '') %>
+<%= hidden_field_tag("access_id_reqd", 'no') %>
+
+<fieldset>
+  <legend>Permissions</legend>
+	<table>
+		<%= f.hidden_field :su_sys_no %>
+        <% perms = get_permissions()
+							perms.each do |perm|
+				-%>
+        	
+			<tr>
+        <td valign="top">
+        	<% if( can_set_role(perm.sr_name) )-%>
+        		<input type="checkbox" id="user_roles_<%=perm.sr_sys_no%>" name="roles[]" value="<%=perm.sr_sys_no%>" <%=checked_perm(@user.security_roles, perm)%> />
+					<% else -%>
+						<input type="checkbox" id="user_roles_<%=perm.sr_sys_no%>" name="roles[]" value="<%=perm.sr_sys_no%>" <%=checked_perm(@user.security_roles, perm)%> disabled="disabled"/>
+					<% end -%>
+				</td>
+				<td valign="top">
+					<label for="user_roles_<%=perm.sr_sys_no%>"><b><%=perm.sr_name%></b></label><br/>
+						<%= hidden_field_tag  'desc_' + perm.sr_sys_no.to_s, perm.sr_description %>
+				</td>
+			</tr>
+	    <% end -%>
+	</table>
+</fieldset>
+
+	</div>
+	<div id="div-right">
+		<fieldset id="description">
+			<legend>Description</legend>
+			 <%= text_area_tag 'role_text', "Place the mouse over the Role title to see the Role or Permission Description.",
+			         :readonly => true, :style=> "overflow:hidden; border:none; font-weight:500; background-color: #EFF6FF;" %> 
+		</fieldset>
+	</div>
+	</div>
+
+<script type="text/javascript">
+	
+	$(document).ready( function() {
+		
+		//console.log($role);
+		
+		$(":radio[value="+ $('#orig_user_role_sys_no').val() +"]").attr('checked',true);
+		
+		// The following click events are used to manage the on-screen controls.  These events are triggered
+		// by the radio buttons for the roles.  The 'highest' priveleged role also gets triggered when the
+		// document is loaded.  The set_role_controls uses three parameters - The first parameter 
+		// controls which role should get the 'green - enabled' or 'red - disabled' icon next to it.  The 2nd
+		// controls the enabling/disabling of the permissions checkboxes, and the 3rd controls the 
+		// enabling/disabling of the district and access_id.
+		
+    // Check to make sure a role is selected when form is submitted...
+		$('#user_form').submit(function() {
+			if (!($('input:radio', this).is(':checked'))) { 
+				//alert('Please select a role before submitting the changes.');
+				$('#new_user_role_sys_no').val('');
+				//return false;
+			}
+			else {
+				$('#new_user_role_sys_no').val($('input:radio:checked').val());
+				//return true;
+			};
+			return true;
+    });
+		
+		$role['Administrator'].click( function () {
+			var aFlags = new Array(1,1,1,1,1,1);
+			set_role_controls(aFlags,true,true);
+			$('input[type=checkbox]').attr('checked',true);
+			$('input[type=checkbox]').attr('disabled',true);
+		});
+		
+		$role['Supervisor'].click( function () {
+			var aFlags = new Array(0,1,0,0,1,1);
+			set_role_controls(aFlags,true,true);
+		});
+		
+		$role['Clerk'].click( function () {
+			var aFlags = new Array(0,0,1,0,0,0);
+			set_role_controls(aFlags,true,false);
+		});
+		
+		$role['Reader'].click( function () {
+			var aFlags = new Array(0,0,0,1,0,0);
+			set_role_controls(aFlags, false, false);  // false = Do Not allow Perms to be set
+		});
+		
+		$role['Inspector'].click( function () {
+			var aFlags = new Array(0,0,0,0,1,1);
+			set_role_controls(aFlags,false, true);
+		});
+		
+		$role['Auditor'].click( function () {
+			var aFlags = new Array(0,0,0,0,0,1);
+			set_role_controls(aFlags,false, true);
+		});
+		
+		$("#user_form").submit(function () {
+			$("input[type=checkbox]").each( function(){
+				if (this.disabled == true ) {
+					$(this).clone().each( function() {
+						this.disabled = false;
+						$(this).appendTo($("#hidden_div"));
+					})
+				}
+			});
+			
+			//if ((!$('#user_access_id').attr('disabled')) && (($('#user_access_id').val() == "") || (isNaN($('#user_access_id').val())))) {
+			//	alert("Please enter a valid 4 digit File No.");
+			//	$('#user_access_id').focus();
+			//	return false;
+			//}
+			
+			return true;
+		});
+		
+		// This assigns the hover event to each of the Role Labels.  When the user enters the label with the mouse,
+		// the description text, which is in the hidden element that starts with 'desc_', is assigned to the element
+		// called 'role_text', which is then displayed in the sidebar on the right side of the content section.
+		$("label[for^='user_roles_']").hover(
+				function () {
+					$('#role_text').val($(('#desc_' + $(this).attr('for').substring(11))).val());
+				}, 
+				function () {
+					$('#role_text').val('Place the mouse over the Role title to see the Role or Permission Description.');
+				}
+		);
+		
+		//Position sensitive - Needs to run after bind of click events for the role radio buttons
+		$('#user_roles_' + $('input:radio:checked').val()).triggerHandler('click');
+
+	});
+
+	function set_role_controls(flags, allow_perms, en_dist_and_id) {
+		$('#img_Administrator').attr('src', ((flags[0] == 1) ? '/images/grn_chk_16.png' : '/images/red_x_16.png'));
+		$('#img_Supervisor').attr('src', ((flags[1] == 1) ? '/images/grn_chk_16.png' : '/images/red_x_16.png'));
+		$('#img_Clerk').attr('src', ((flags[2] == 1) ? '/images/grn_chk_16.png' : '/images/red_x_16.png'));
+		$('#img_Reader').attr('src', ((flags[3] == 1) ? '/images/grn_chk_16.png' : '/images/red_x_16.png'));
+		$('#img_Inspector').attr('src', ((flags[4] == 1) ? '/images/grn_chk_16.png' : '/images/red_x_16.png'));
+		$('#img_Auditor').attr('src', ((flags[5] == 1) ? '/images/grn_chk_16.png' : '/images/red_x_16.png'));
+		
+		//Enable or Disable Permissions Checkboxes...
+		if (!allow_perms) {
+			$('input[type=checkbox]').attr('checked',false);
+		}
+		$('input[type=checkbox]').attr('disabled',(!allow_perms));
+		//$('#user_district').attr('disabled',(!en_dist_and_id));	
+		//$('#user_access_id').attr('disabled',(!en_dist_and_id));
+		if (en_dist_and_id) {
+				$('#user_district').show();
+				$('#user_district_label').show();
+				$('#user_access_id').show();
+				$('#user_access_id_label').show();
+				$('#access_note').show();
+				$('#access_id_reqd').val('yes');
+			}
+		else {
+				$('#user_district').hide();
+				$('#user_district_label').hide();
+				$('#user_access_id').hide();
+				$('#user_access_id_label').hide();
+				$('#access_note').hide();
+				$('#access_id_reqd').val('no');
+		};
+		
+	};
+	
+</script>
